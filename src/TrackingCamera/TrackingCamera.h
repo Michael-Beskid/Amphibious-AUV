@@ -1,3 +1,13 @@
+/**
+ * @file TrackingCamera.h
+ *
+ * @brief Header file for TrackingCamera class.
+ *
+ * @author Michael Beskid
+ * Contact: mjbeskid@wpi.edu
+ *
+ */
+
 #ifndef _TrackingCamera_H_
 #define _TrackingCamera_H_
 

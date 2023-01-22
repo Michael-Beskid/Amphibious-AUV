@@ -1,17 +1,45 @@
+/**
+ * @file RadioComm.cpp
+ *
+ * @brief RadioComm class contains all of the functions needed for radio communication 
+ * 
+ * The radio receiver on the quadrotor is a PPM type receiver.
+ * 
+ * Wiring:
+ *   Radio RX PPM pin: pin 23
+ *
+ * @author Michael Beskid
+ * Contact: mjbeskid@wpi.edu
+ *
+ */
+
 #include "RadioComm.h"
 
 RadioComm::RadioComm() {}
 
+/**
+ * @brief Initialize radio communication.
+ */
 void RadioComm::init() {
-  //Declare interrupt pin
-  pinMode(PPM_Pin, INPUT_PULLUP);
+  pinMode(PPM_Pin, INPUT_PULLUP); // Declare interrupt pin
   delay(20);
 }
 
+/**
+ * @brief Initialize radio communication.
+ * 
+ * @returns PPM pin number.
+ */
 int RadioComm::getPPMpin() {
   return PPM_Pin;
 }
 
+/**
+ * @brief Get the most recent radio PWM value from the specified channel.
+ * 
+ * @param ch_num Channel number to read PWM value from.
+ * @returns PWM value from the specified channel.
+ */
 unsigned long RadioComm::getPWM(int ch_num) {
   unsigned long returnPWM = 0;
   
@@ -37,8 +65,14 @@ unsigned long RadioComm::getPWM(int ch_num) {
   return returnPWM;
 }
 
+/**
+ * @brief Read current radio commands from interrupt service routine.
+ * 
+ * @param ch_num Channel number to read radio command from.
+ * @returns raw radio command from specified channel.
+ */
 unsigned long RadioComm::readRadioPWM(int ch_num) {
-  //DESCRIPTION: Get current radio commands from interrupt routines 
+
   unsigned long returnPWM = 0;
   
   if (ch_num == 1) {
@@ -63,7 +97,9 @@ unsigned long RadioComm::readRadioPWM(int ch_num) {
   return returnPWM;
 }
 
-// INTERRUPT SERVICE ROUTINE (for reading PPM)
+/**
+ * @brief Interupt service routine for reading PPM radio signals from transmitter.
+ */
 void RadioComm::getPPM() {
   unsigned long dt_ppm;
   int trig = digitalRead(PPM_Pin);
@@ -104,8 +140,10 @@ void RadioComm::getPPM() {
   }
 }
 
+/**
+ * @brief Set radio channels to default (safe) values.
+ */
 void RadioComm::setFailSafe() {
-  // Set radio channels to default (safe) values before entering main loop
   channel_1_pwm = channel_1_fs;
   channel_2_pwm = channel_2_fs;
   channel_3_pwm = channel_3_fs;
@@ -114,15 +152,18 @@ void RadioComm::setFailSafe() {
   channel_6_pwm = channel_6_fs;
 }
 
+/**
+ * @brief Set all commands to default values if poor radio commadns are received.
+ * 
+ * From dRehmFlight:
+ *   Radio connection failsafe used to check if the getCommands() function is returning acceptable pwm values. If any of 
+ *   the commands are lower than 800 or higher than 2200, then we can be certain that there is an issue with the radio
+ *   connection (most likely hardware related). If any of the channels show this failure, then all of the radio commands 
+ *   channel_x_pwm are set to default failsafe values specified in the setup. Comment out this function when troubleshooting 
+ *   your radio connection in case any extreme values are triggering this function to overwrite the printed variables.
+ */
 void RadioComm::failSafe() {
-  //DESCRIPTION: If radio gives garbage values, set all commands to default values
-  /*
-   * Radio connection failsafe used to check if the getCommands() function is returning acceptable pwm values. If any of 
-   * the commands are lower than 800 or higher than 2200, then we can be certain that there is an issue with the radio
-   * connection (most likely hardware related). If any of the channels show this failure, then all of the radio commands 
-   * channel_x_pwm are set to default failsafe values specified in the setup. Comment out this function when troubleshooting 
-   * your radio connection in case any extreme values are triggering this function to overwrite the printed variables.
-   */
+
   unsigned minVal = 800;
   unsigned maxVal = 2200;
   int check1 = 0;
@@ -151,14 +192,17 @@ void RadioComm::failSafe() {
   }
 }
 
+/**
+ * @brief Get raw PWM values for every channel from the radio.
+ * 
+ * From dRehmFlight:
+ *   Updates radio PWM commands in loop based on current available commands. channel_x_pwm is the raw command used in the rest of 
+ *   the loop. If using a PWM or PPM receiver, the radio commands are retrieved from a function in the readPWM file separate from 
+ *   this one which is running a bunch of interrupts to continuously update the radio readings. If using an SBUS receiver, the values
+ *   are pulled from the SBUS library directly. The raw radio commands are filtered with a first order low-pass filter to eliminate
+ *   any really high frequency noise. 
+ */
 void RadioComm::getCommands() {
-  //DESCRIPTION: Get raw PWM values for every channel from the radio
-  /*
-   * Updates radio PWM commands in loop based on current available commands. channel_x_pwm is the raw command used in the rest of 
-   * the loop. If using a PWM or PPM receiver, the radio commands are retrieved from a function in the readPWM file separate from this one which 
-   * is running a bunch of interrupts to continuously update the radio readings. If using an SBUS receiver, the alues are pulled from the SBUS library directly.
-   * The raw radio commands are filtered with a first order low-pass filter to eliminate any really high frequency noise. 
-   */
 
   // Get values from radio channels
   channel_1_pwm = readRadioPWM(1);
@@ -181,6 +225,9 @@ void RadioComm::getCommands() {
   
 }
 
+/**
+ * @brief Print radio values to the Serial monitor.
+ */
 void RadioComm::printData() {
   Serial.print(F(" CH1: "));
   Serial.print(channel_1_pwm);

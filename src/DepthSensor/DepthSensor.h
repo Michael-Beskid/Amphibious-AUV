@@ -1,3 +1,13 @@
+/**
+ * @file DepthSensor.h
+ *
+ * @brief Header file for DepthSensor class.
+ *
+ * @author Michael Beskid
+ * Contact: mjbeskid@wpi.edu
+ *
+ */
+
 #ifndef _DEPTHSENSOR_H_
 #define _DEPTHSENSOR_H_
 

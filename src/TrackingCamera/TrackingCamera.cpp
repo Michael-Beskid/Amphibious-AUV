@@ -1,19 +1,51 @@
+/**
+ * @file TrackingCamera.cpp
+ *
+ * @brief Class for interfacing with the Intel RealSense T265 tracking camera.
+ * 
+ * Wiring:
+ *   Unspecified: RX (pin 7)
+ *   Unspecified: TX (pin 8)
+ *
+ * @author Michael Beskid
+ * Contact: mjbeskid@wpi.edu
+ *
+ */
 #include "TrackingCamera.h"
 
 TrackingCamera::TrackingCamera() {}
 
+/**
+ * @brief Initialize the tracking camera.
+ */
 void TrackingCamera::init() {
     Serial2.begin(9600);
 }
 
+/**
+ * @brief Get the current X-position.
+ *
+ * @returns most recent X-position in meters.
+ */
 float TrackingCamera::getPosX() {
   return posX;
 }
 
+/**
+ * @brief Get the current Y-position.
+ *
+ * @returns most recent Y-position in meters.
+ */
 float TrackingCamera::getPosY() {
   return posY;
 }
 
+/**
+ * @brief Read position data from the tracking camera.
+ *
+ * If available, reads the latest position estimate from the camera
+ *   and updates the current (X,Y) position. 
+ */
 void TrackingCamera::readData() {
     if (newPosData == true) {
       int posX = (upperX << 8) + lowerX;
@@ -26,6 +58,9 @@ void TrackingCamera::readData() {
     }
 }
 
+/**
+ * @brief Receive and process Serial data from the camera.
+ */
 void TrackingCamera::recvSerial() {
   static boolean recvInProgress = false;
   static byte ndx = 0;
@@ -63,6 +98,9 @@ void TrackingCamera::recvSerial() {
   }
 }
 
+/**
+ * @brief Print the current (X,Y) position in [m] to the Serial monitor.
+ */
 void TrackingCamera::printPosition() {
   Serial.print(F("X-Position: "));
   Serial.print(posX);

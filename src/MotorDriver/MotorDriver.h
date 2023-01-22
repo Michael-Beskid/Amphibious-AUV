@@ -1,3 +1,13 @@
+/**
+ * @file MotorDriver.h
+ *
+ * @brief Header file for MotorDriver class.
+ *
+ * @author Michael Beskid
+ * Contact: mjbeskid@wpi.edu
+ *
+ */
+
 #ifndef _MOTORDRIVER_H_
 #define _MOTORDRIVER_H_
 

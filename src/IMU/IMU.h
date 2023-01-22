@@ -1,3 +1,13 @@
+/**
+ * @file IMU.h
+ *
+ * @brief Header file for IMU class.
+ *
+ * @author Michael Beskid
+ * Contact: mjbeskid@wpi.edu
+ *
+ */
+
 #ifndef _IMU_H_
 #define _IMU_H_
 

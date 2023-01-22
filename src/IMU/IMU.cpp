@@ -1,9 +1,31 @@
+/**
+ * @file IMU.cpp
+ *
+ * @brief IMU class to interface with the MPU6050 inertial measurement unit.
+ * 
+ * This class utilizes the MPU6050 library created by Jeff Rowberg to interface with the MPU6050 6-axis IMU
+ *   which features a 3-axis accelerometer and 3-axis rate gyroscope.
+ * 
+ * Wiring:
+ *   Red: +5V
+ *   Black: GND
+ *   Blue: SDA (pin 18)
+ *   Green: SCL (pin 19)
+ *
+ * @author Michael Beskid
+ * Contact: mjbeskid@wpi.edu
+ *
+ */
+
 #include "IMU.h"
 
 MPU6050 mpu6050;
 
 IMU::IMU() {}
 
+/**
+ * @brief Initialize the IMU.
+ */
 void IMU::init() {
   
   Wire.begin();
@@ -25,52 +47,100 @@ void IMU::init() {
     
 }
 
+/**
+ * @brief Get the current X-axis gyro reading.
+ *
+ * @returns most recent X-axis gyro value in dps.
+ */
 float IMU::getGyroX() {
   return GyroX;
 }
 
+/**
+ * @brief Get the current Y-axis gyro reading.
+ *
+ * @returns most recent Y-axis gyro value in dps.
+ */
 float IMU::getGyroY() {
   return GyroY;
 }
 
+/**
+ * @brief Get the current Z-axis gyro reading.
+ *
+ * @returns most recent Z-axis gyro value in dps.
+ */
 float IMU::getGyroZ() {
   return GyroZ;
 }
 
+/**
+ * @brief Get the current X-axis accelerometer reading.
+ *
+ * @returns most recent X-axis accelerometer value in g's.
+ */
 float IMU::getAccX() {
   return AccX;
 }
 
+/**
+ * @brief Get the current Y-axis accelerometer reading.
+ *
+ * @returns most recent Y-axis accelerometer value in g's.
+ */
 float IMU::getAccY() {
   return AccY;
 }
 
+/**
+ * @brief Get the current Z-axis accelerometer reading.
+ *
+ * @returns most recent Z-axis accelerometer value in g's.
+ */
 float IMU::getAccZ() {
   return AccZ;
 }
 
+/**
+ * @brief Get the current roll angle.
+ *
+ * @returns most recent roll angle measurement in degrees.
+ */
 float IMU::getRoll() {
   return roll_IMU;
 }
 
+/**
+ * @brief Get the current pitch angle.
+ *
+ * @returns most recent pitch angle measurement in degrees.
+ */
 float IMU::getPitch() {
   return pitch_IMU;
 }
 
+/**
+ * @brief Get the current yaw angle.
+ *
+ * @returns most recent yaw angle measurement in degrees.
+ */
 float IMU::getYaw() {
   return yaw_IMU;
 }
 
+/**
+ * @brief Request full dataset from IMU and LP filter gyro, accelerometer, and magnetometer data.
+ *
+ * From dRehmFlight:
+ *   Reads accelerometer, gyro, and magnetometer data from IMU as AccX, AccY, AccZ, GyroX, GyroY, GyroZ, MagX, MagY, MagZ. 
+ *   These values are scaled according to the IMU datasheet to put them into correct units of g's, deg/sec, and uT. A simple first-order
+ *   low-pass filter is used to get rid of high frequency noise in these raw signals. Generally you want to cut
+ *   off everything past 80Hz, but if your loop rate is not fast enough, the low pass filter will cause a lag in
+ *   the readings. The filter parameters B_gyro and B_accel are set to be good for a 2kHz loop rate. Finally,
+ *   the constant errors found in calculate_IMU_error() on startup are subtracted from the accelerometer and gyro readings.
+ */
 void IMU::readData() {
-  //DESCRIPTION: Request full dataset from IMU and LP filter gyro, accelerometer, and magnetometer data
-  /*
-   * Reads accelerometer, gyro, and magnetometer data from IMU as AccX, AccY, AccZ, GyroX, GyroY, GyroZ, MagX, MagY, MagZ. 
-   * These values are scaled according to the IMU datasheet to put them into correct units of g's, deg/sec, and uT. A simple first-order
-   * low-pass filter is used to get rid of high frequency noise in these raw signals. Generally you want to cut
-   * off everything past 80Hz, but if your loop rate is not fast enough, the low pass filter will cause a lag in
-   * the readings. The filter parameters B_gyro and B_accel are set to be good for a 2kHz loop rate. Finally,
-   * the constant errors found in calculate_IMU_error() on startup are subtracted from the accelerometer and gyro readings.
-   */
+
   int16_t AcX,AcY,AcZ,GyX,GyY,GyZ;
 
   mpu6050.getMotion6(&AcX, &AcY, &AcZ, &GyX, &GyY, &GyZ);
@@ -109,13 +179,16 @@ void IMU::readData() {
 
 }
 
+/**
+ * @brief Computes IMU accelerometer and gyro error on startup.
+ *
+ * From dRehmFlight:
+ *   Don't worry too much about what this is doing. The error values it computes are applied to the raw gyro and
+ *   accelerometer values AccX, AccY, AccZ, GyroX, GyroY, GyroZ in getIMUdata(). This eliminates drift in the
+ *   measurement. 
+ */
 void IMU::calculateError() {
-  //DESCRIPTION: Computes IMU accelerometer and gyro error on startup. Note: vehicle should be powered up on flat surface
-  /*
-   * Don't worry too much about what this is doing. The error values it computes are applied to the raw gyro and 
-   * accelerometer values AccX, AccY, AccZ, GyroX, GyroY, GyroZ in getIMUdata(). This eliminates drift in the
-   * measurement. 
-   */
+  
   int16_t AcX,AcY,AcZ,GyX,GyY,GyZ;
   
   //Read IMU values 12000 times
@@ -171,15 +244,18 @@ void IMU::calculateError() {
   Serial.println("Paste these values in user specified variables section and comment out calculate_IMU_error() in void setup.");
 }
 
+/**
+ * @brief Attitude estimation through sensor fusion - 6DOF.
+ * 
+ * from dRehmFlight:
+ *   This function fuses the accelerometer gyro, and magnetometer readings AccX, AccY, AccZ, GyroX, GyroY, GyroZ, MagX, MagY, and MagZ for attitude estimation.
+ *   Don't worry about the math. There is a tunable parameter B_madgwick in the user specified variable section which basically
+ *   adjusts the weight of gyro data in the state estimate. Higher beta leads to noisier estimate, lower 
+ *   beta leads to slower to respond estimate. It is currently tuned for 2kHz loop rate. This function updates the roll_IMU,
+ *   pitch_IMU, and yaw_IMU variables which are in degrees.
+ * 
+ */
 void IMU::Madgwick(float gx, float gy, float gz, float ax, float ay, float az, float invSampleFreq) {
-  //DESCRIPTION: Attitude estimation through sensor fusion - 6DOF
-  /*
-   * This function fuses the accelerometer gyro, and magnetometer readings AccX, AccY, AccZ, GyroX, GyroY, GyroZ, MagX, MagY, and MagZ for attitude estimation.
-   * Don't worry about the math. There is a tunable parameter B_madgwick in the user specified variable section which basically
-   * adjusts the weight of gyro data in the state estimate. Higher beta leads to noisier estimate, lower 
-   * beta leads to slower to respond estimate. It is currently tuned for 2kHz loop rate. This function updates the roll_IMU,
-   * pitch_IMU, and yaw_IMU variables which are in degrees. If magnetometer data is not available, this function calls Madgwick6DOF() instead.
-   */
 
   float recipNorm;
   float s0, s1, s2, s3;
@@ -257,6 +333,9 @@ void IMU::Madgwick(float gx, float gy, float gz, float ax, float ay, float az, f
   yaw_IMU = -atan2(q1*q2 + q0*q3, 0.5f - q2*q2 - q3*q3)*57.29577951; //degrees
 }
 
+/**
+ * @brief Print the 3-axis gyros readings in [dps] to the Serial monitor.
+ */
 void IMU::printGyroData() {
     Serial.print(F("GyroX: "));
     Serial.print(GyroX);
@@ -266,6 +345,9 @@ void IMU::printGyroData() {
     Serial.println(GyroZ);
 }
 
+/**
+ * @brief Print the 3-axis accelerometer readings in g's to the Serial monitor.
+ */
 void IMU::printAccelData() {
     Serial.print(F("AccX: "));
     Serial.print(AccX);
@@ -275,6 +357,9 @@ void IMU::printAccelData() {
     Serial.println(AccZ);
 }
 
+/**
+ * @brief Print the roll, pitch, and yaw angles in [deg] to the Serial monitor.
+ */
 void IMU::printRollPitchYaw() {
     Serial.print(F("roll: "));
     Serial.print(roll_IMU);
@@ -284,6 +369,12 @@ void IMU::printRollPitchYaw() {
     Serial.println(yaw_IMU);
 }
 
+/**
+ * @brief Compute the inverse square.
+ * 
+ * @param x Any number.
+ * @returns the inverse square of the input.
+ */
 float IMU::invSqrt(float x) {
   return 1.0/sqrtf(x); 
 }

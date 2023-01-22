@@ -1,3 +1,13 @@
+/**
+ * @file ControllerVariables.h
+ *
+ * @brief Contains controller variables and PID gains for attitude, altitude, depth, and position controllers.
+ *
+ * @author Michael Beskid
+ * Contact: mjbeskid@wpi.edu
+ *
+ */
+
 // General controller variables
 float maxRoll = 30.0;     //Max roll angle in degrees for angle mode (maximum ~70 degrees), deg/sec for rate mode 
 float maxPitch = 30.0;    //Max pitch angle in degrees for angle mode (maximum ~70 degrees), deg/sec for rate mode

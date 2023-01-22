@@ -1,3 +1,13 @@
+/**
+ * @file AltitudeSensor.h
+ *
+ * @brief Header file for AltitudeSensor class.
+ *
+ * @author Michael Beskid
+ * Contact: mjbeskid@wpi.edu
+ *
+ */
+
 #ifndef _AltitudeSensor_H_
 #define _AltitudeSensor_H_
 

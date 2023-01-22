@@ -1,3 +1,13 @@
+/**
+ * @file RadioComm.h
+ *
+ * @brief Header file for RadioComm class.
+ *
+ * @author Michael Beskid
+ * Contact: mjbeskid@wpi.edu
+ *
+ */
+
 #ifndef _RADIOCOMM_H_
 #define _RADIOCOMM_H_
 
