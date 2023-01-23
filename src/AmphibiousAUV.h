@@ -26,6 +26,7 @@ float error_roll, error_roll_prev, roll_des_prev, integral_roll, integral_roll_i
 float error_pitch, error_pitch_prev, pitch_des_prev, integral_pitch, integral_pitch_il, integral_pitch_ol, integral_pitch_prev, integral_pitch_prev_il, integral_pitch_prev_ol, derivative_pitch, pitch_PID = 0;
 float error_yaw, error_yaw_prev, integral_yaw, integral_yaw_prev, derivative_yaw, yaw_PID = 0;
 float error_altitude, error_altitude_prev, altitude_des_prev, integral_altitude, integral_altitude_prev, derivative_altitude, altitude_PID = 0;
+float error_depth, error_depth_prev, depth_des_prev, integral_depth, integral_depth_prev, derivative_depth, depth_PID = 0;
 float error_posX, error_posY, posX_control, posY_control = 0;
 
 // Flight modes enumeration

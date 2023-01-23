@@ -282,6 +282,7 @@ void getDesState() {
       switch (manualState) {
         case MANUAL_STARTUP:
           motorsOff = false;
+          underwater = false;
           missionState = AUTO_STARTUP; // Reset AUTO mode state machine
           manualState = NORMAL;
           break;
@@ -300,6 +301,7 @@ void getDesState() {
           integral_altitude_prev = 0.0;
           error_altitude_prev = 0.0;
           motorsOff = false;
+          underwater = false;
           manualState = MANUAL_STARTUP; // Reset MANUAL mode state machine
           missionState = TAKEOFF1;      
           setTargetAltitude(1.5);
@@ -319,11 +321,17 @@ void getDesState() {
           break;
         case LAND1:
           if (reachedTarget()) {
-            missionState = STOP;
+            missionState = DIVE1;
+            setTargetDepth(1.0);
             motorsOff = true;
+            underwater = true;
           }
           break;
         case DIVE1:
+          if (reachedTarget()) {
+            missionState = UNDERWATER1;
+            motorsOff = false;
+          }
           break;
         case UNDERWATER1:
           break;
@@ -367,16 +375,27 @@ void getDesState() {
  */
 void getDesStateAuto() {
 
-  // PID Altitude Controller
-  error_altitude = altitude_des - altitudeSensor.getAltitude();
-  integral_altitude = integral_altitude_prev + error_altitude*dt;
-  integral_altitude = constrain(integral_altitude, -i_limit_altitude, i_limit_altitude); //Saturate integrator to prevent unsafe buildup
-  derivative_altitude = (error_altitude - error_altitude_prev)/dt; 
-  altitude_PID = 0.00005*(Kp_altitude*error_altitude + Ki_altitude*integral_altitude - Kd_altitude*derivative_altitude); //Scaled by .00005 to bring within 0 to 1 range
-
-  // Update variables
-  integral_altitude_prev = integral_altitude;
-  error_altitude_prev = error_altitude;
+  if (underwater) {
+    // PID Depth Controller
+    error_depth = depth_des - depthSensor.getDepth();
+    integral_depth = integral_depth_prev + error_depth*dt;
+    integral_depth = constrain(integral_depth, -i_limit_depth, i_limit_depth); //Saturate integrator to prevent unsafe buildup
+    derivative_depth = (error_depth - error_depth_prev)/dt; 
+    depth_PID = 0.00005*(Kp_depth*error_depth + Ki_depth*integral_depth - Kd_depth*derivative_depth); //TODO: Come up with a reasonable scaling factor to bring within 0 to 1 range
+    // Update variables
+    integral_depth_prev = integral_depth;
+    error_depth_prev = error_depth;
+  } else {
+    // PID Altitude Controller
+    error_altitude = altitude_des - altitudeSensor.getAltitude();
+    integral_altitude = integral_altitude_prev + error_altitude*dt;
+    integral_altitude = constrain(integral_altitude, -i_limit_altitude, i_limit_altitude); //Saturate integrator to prevent unsafe buildup
+    derivative_altitude = (error_altitude - error_altitude_prev)/dt; 
+    altitude_PID = 0.00005*(Kp_altitude*error_altitude + Ki_altitude*integral_altitude - Kd_altitude*derivative_altitude); //Scaled by .00005 to bring within 0 to 1 range
+    // Update variables
+    integral_altitude_prev = integral_altitude;
+    error_altitude_prev = error_altitude;
+  } 
 
   // Proportional Position Controller
   error_posX = target_posX - camera.getPosX();
@@ -386,8 +405,6 @@ void getDesStateAuto() {
 
   // Set desired throttle value from altitude controller
   thro_des = hover_throttle + altitude_PID;
-
-  // TODO: Check conventions to confirm that X and Y are correctly mapped to pitch and roll axes
 
   // Set desired roll and pitch angles from position controller
   roll_des = posY_control ; //Between -1 and 1
@@ -538,9 +555,15 @@ void setTargetPos(float posX, float posY) {
  * @returns 'true' if vehicle has reached target. 
  */
 boolean reachedTarget() {
-  return abs(target_posX - camera.getPosX()) < POS_DB_RADIUS 
+  if (underwater) {
+    return abs(target_posX - camera.getPosX()) < POS_DB_RADIUS 
+    && abs(target_posY - camera.getPosY()) < POS_DB_RADIUS
+    && abs(depth_des - depthSensor.getDepth()) < POS_DB_RADIUS;
+  } else {
+    return abs(target_posX - camera.getPosX()) < POS_DB_RADIUS 
     && abs(target_posY - camera.getPosY()) < POS_DB_RADIUS
     && abs(altitude_des - altitudeSensor.getAltitude()) < POS_DB_RADIUS;
+  }
 }
 
 /**
