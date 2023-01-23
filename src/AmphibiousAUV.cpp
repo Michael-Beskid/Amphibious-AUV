@@ -304,13 +304,13 @@ void getDesState() {
           underwater = false;
           manualState = MANUAL_STARTUP; // Reset MANUAL mode state machine
           missionState = TAKEOFF1;      
-          setTargetAltitude(1.5);
+          setTargetAltitude(STD_ALTITUDE);
           setTargetPos(0.0, 0.0);
           break;
         case TAKEOFF1:
           if (reachedTarget()) {
             missionState = FORWARD1;
-            setTargetPos(5.0, 0.0);
+            setTargetRelPos(SHORT_TRAVEL_DISTANCE, 0.0);
           }
           break;
         case FORWARD1:
@@ -322,7 +322,7 @@ void getDesState() {
         case LAND1:
           if (reachedTarget()) {
             missionState = DIVE1;
-            setTargetDepth(1.0);
+            setTargetDepth(STD_DEPTH);
             motorsOff = true;
             underwater = true;
           }
@@ -330,30 +330,86 @@ void getDesState() {
         case DIVE1:
           if (reachedTarget()) {
             missionState = UNDERWATER1;
+            setTargetRelPos(LONG_TRAVEL_DISTANCE, 0.0);
             motorsOff = false;
           }
           break;
         case UNDERWATER1:
+          if (reachedTarget()) {
+            missionState = SURFACE1;
+            setTargetDepth(0.0); // TODO: Maybe better to jsut write a surface() function that just totally empties the ballast tank instead of using the controller?
+            motorsOff = true;
+          }
           break;
         case SURFACE1:
+          if (reachedTarget()) {
+            missionState = TAKEOFF2;
+            setTargetAltitude(STD_ALTITUDE);
+            motorsOff = false;
+            underwater = false;
+          }
           break;
         case TAKEOFF2:
+          if (reachedTarget()) {
+            missionState = HOVER;
+          }
           break;
         case HOVER:
+          long currentTime = millis();
+          long targetTime = currentTime + HOVER_TIME*1000;
+          if (currentTime >= targetTime) {
+            missionState = LAND2;
+            setTargetAltitude(0.0);
+          } else {
+            currentTime = millis();
+          }
           break;
         case LAND2:
+          if (reachedTarget()) {
+            missionState = DIVE2;
+            setTargetDepth(STD_DEPTH);
+            motorsOff = true;
+            underwater = true;
+          }
           break;
         case DIVE2:
+          if (reachedTarget()) {
+            missionState = UNDERWATER2;
+            setTargetRelPos(-LONG_TRAVEL_DISTANCE, 0.0);
+          }
           break;
         case UNDERWATER2:
+          if (reachedTarget()) {
+            missionState = SURFACE2;
+            setTargetDepth(0.0);
+            motorsOff = true;
+          }
           break;
         case SURFACE2:
+          if (reachedTarget()) {
+            missionState = TAKEOFF3;
+            setTargetAltitude(STD_ALTITUDE);
+            motorsOff = false;
+            underwater = false;
+          }
           break;
         case TAKEOFF3:
+          if (reachedTarget()) {
+            missionState = FORWARD2;
+            setTargetRelPos(-SHORT_TRAVEL_DISTANCE, 0.0);
+          }
           break;
         case FORWARD2:
+          if (reachedTarget()) {
+            missionState = LAND3;
+            setTargetAltitude(0.0);
+          }
           break;
         case LAND3:
+          if (reachedTarget()) {
+            missionState = STOP;
+            motorsOff = true;
+          }
           break;
         case STOP:
           break;
@@ -539,6 +595,18 @@ void setTargetDepth(float depth) {
 void setTargetPos(float posX, float posY) {
   target_posX = posX;
   target_posY = posY;
+}
+
+/**
+ * @brief Set (X,Y) position target relative to current position target
+ * 
+ * @param posX Desired relative X-position in meters.
+ * @param posY Desired relative Y-position in meters.
+ */
+void setTargetRelPos(float offsetX, float offsetY) {
+  float newTargetX = target_posX + offsetX;
+  float newTargetY = target_posY + offsetY;
+  setTargetPos(newTargetX, newTargetY);
 }
 
 /**

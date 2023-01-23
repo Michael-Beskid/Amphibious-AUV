@@ -69,7 +69,15 @@ enum autoStates {
 enum autoStates missionState;
 
 // Motion planning
-const float POS_DB_RADIUS = 0.25; // Deadband radius for evaluating reached position targets
+const float POS_DB_RADIUS = 0.25; // [m] Deadband radius for evaluating reached position targets
+const float STD_ALTITUDE = 1.5; // [m] Standardized typical altitude for autonomous mission
+const float STD_DEPTH = 1.0; // [m] Standardized typcial depth for autonomous mission
+const float POOL_LENGTH = 22.86; // [m] Typical swimming pool lanes are 25 yards in length
+const float INITIAL_DISTANCE = 3.0; // [m] Distance from takeoff location to edge of pool
+const float OFFSET_DISTANCE = 2.0; // [m] Distance from edge of pool for dive/takeoff locations
+const float SHORT_TRAVEL_DISTANCE = INITIAL_DISTANCE + OFFSET_DISTANCE; // [m] Distance traveled in air from takeoff point to pool entry point
+const float LONG_TRAVEL_DISTANCE = POOL_LENGTH - 2*OFFSET_DISTANCE; // [m] Distance traveled underwater from one end of the pool to the other
+const float HOVER_TIME = 5.0; //[seconds] Hover time at midpoint of autonomous mission
 boolean motorsOff = false;
 boolean underwater = false;
 float altitude_des = 0.0; // mm
