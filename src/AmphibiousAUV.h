@@ -47,21 +47,9 @@ enum manualStates manualState;
 // Autonomous states enumeration
 enum autoStates {
   AUTO_STARTUP, // Initilaization
-  TAKEOFF1,     // Take off from start position on Side A
-  FORWARD1,     // Fly forward to above pool on Side A
-  LAND1,        // Land on water surface near Side A
-  DIVE1,        // Dive underwater near Side A
-  UNDERWATER1,  // Travel underwater from Side A to Side B
-  SURFACE1,     // Surface near Side B
-  TAKEOFF2,     // Take off from water near Side B
-  HOVER,        // Perform some task - TBD
-  LAND2,        // Land on water surface near side B
-  DIVE2,        // Dive underwater near Side B
-  UNDERWATER2,  // Travel underwater from Side B to Side A
-  SURFACE2,     // Surface near Side A
-  TAKEOFF3,     // Take off from water near side A
-  FORWARD2,     // Fly forward to above starting position
-  LAND3,        // Land at starting position
+  TAKEOFF,      // Take off vertically from start position to an altitude of 1.5 meters
+  FORWARD,      // Translate forward a distance of 5.0 meters
+  LAND,         // Land on the ground surface
   STOP          // End autonomous mission
 };
 

@@ -196,7 +196,7 @@ void printDebugInfo() {
 }
 
 /**
- * @brief
+ * @brief Get the current flight mode from the radio transmitter
  */
 void getFlightMode() {
   if (radio.getPWM(6) > 1500) {
@@ -301,51 +301,27 @@ void getDesState() {
           error_altitude_prev = 0.0;
           motorsOff = false;
           manualState = MANUAL_STARTUP; // Reset MANUAL mode state machine
-          missionState = TAKEOFF1;      
+          missionState = TAKEOFF;      
           setTargetAltitude(1.5);
           setTargetPos(0.0, 0.0);
           break;
-        case TAKEOFF1:
+        case TAKEOFF:
           if (reachedTarget()) {
-            missionState = FORWARD1;
+            missionState = FORWARD;
             setTargetPos(5.0, 0.0);
           }
           break;
-        case FORWARD1:
+        case FORWARD:
           if (reachedTarget()) {
-            missionState = LAND1;
+            missionState = LAND;
             setTargetAltitude(0.0);
           }
           break;
-        case LAND1:
+        case LAND:
           if (reachedTarget()) {
             missionState = STOP;
             motorsOff = true;
           }
-          break;
-        case DIVE1:
-          break;
-        case UNDERWATER1:
-          break;
-        case SURFACE1:
-          break;
-        case TAKEOFF2:
-          break;
-        case HOVER:
-          break;
-        case LAND2:
-          break;
-        case DIVE2:
-          break;
-        case UNDERWATER2:
-          break;
-        case SURFACE2:
-          break;
-        case TAKEOFF3:
-          break;
-        case FORWARD2:
-          break;
-        case LAND3:
           break;
         case STOP:
           break;
