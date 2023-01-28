@@ -8,7 +8,18 @@
  *
  */
 
-#include <Arduino.h> 
+#include <Arduino.h>                        // Arduino library
+#include <Wire.h>                           // I2C communication
+#include <SPI.h>                            // SPI communication
+#include <SoftwareSerial.h>                 // Serial communication
+#include "ControllerVariables.h"            // Controller variables
+#include "MotorDriver/MotorDriver.h"        // Motor and servo commands
+#include "QuadEncoder/QuadEncoder.h"        // Quadrature coders for ballast system actuation
+#include "IMU/IMU.h"                        // MPU 6050 IMU (6-axis accel/gyro)
+#include "RadioComm/RadioComm.h"            // Radio communication
+#include "DepthSensor/DepthSensor.h"        // BlueRobotics Bar30 depth sensor
+#include "AltitudeSensor/AltitudeSensor.h"  // A02YYUW waterproof ultrasonic rangefinder
+#include "TrackingCamera/TrackingCamera.h"  // Intel RealSense T265 tracking camera  
 
 // General declarations
 float dt;
@@ -95,6 +106,7 @@ void getDesStateAuto();
 void getDesStateManual();
 void controlANGLE();
 void throttleCut();
+void updateEncoders();
 void setTargetAltitude(float alt);
 void setTargetDepth(float depth);
 void setTargetPos(float posX, float posY);

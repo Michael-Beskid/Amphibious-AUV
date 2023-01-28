@@ -23,21 +23,12 @@
  *
  */
 
-#include <Arduino.h>                        // Arduino library
-#include <Wire.h>                           // I2C communication
-#include <SPI.h>                            // SPI communication
-#include <SoftwareSerial.h>                 // Serial communication
-#include "AmphibiousAUV.h"                  // General variables and function declarations
-#include "ControllerVariables.h"            // Controller variables
-#include "MotorDriver/MotorDriver.h"        // Motor and servo commands
-#include "IMU/IMU.h"                        // MPU 6050 IMU (6-axis accel/gyro)
-#include "RadioComm/RadioComm.h"            // Radio communication
-#include "DepthSensor/DepthSensor.h"        // BlueRobotics Bar30 depth sensor
-#include "AltitudeSensor/AltitudeSensor.h"  // A02YYUW waterproof ultrasonic rangefinder
-#include "TrackingCamera/TrackingCamera.h"  // Intel RealSense T265 tracking camera
+#include "AmphibiousAUV.h"
 
 MotorDriver motors;
 RadioComm radio;
+QuadEncoder enc1(9, 10);
+QuadEncoder enc2(10,11);
 IMU imu;
 DepthSensor depthSensor;
 AltitudeSensor altitudeSensor;
@@ -119,6 +110,9 @@ void loop() {
   // Print data at 100hz (uncomment one at a time below for troubleshooting)
   printDebugInfo();
 
+  // Update encoder counters for ballast system actuation
+  updateEncoders();
+
   // Pull raw gyro, accelerometer, and magnetometer data from IMU and LP filter to remove noise
   imu.readData();
   // Update roll_IMU, pitch_IMU, and yaw_IMU angle estimates (degrees)
@@ -185,6 +179,8 @@ void printDebugInfo() {
       //motors.printMotorCommands();
       //motors.printMotorCommandsScaled();
       //motors.printServoCommands();
+      //enc1.printEncoderInfo();
+      // enc2.printEncoderInfo();
       //imu.printGyroData();
       //imu.printAccelData();
       //imu.printRollPitchYaw();
@@ -259,9 +255,10 @@ void controlMixer() {
   float m4 = thro_des - pitch_PID + roll_PID + yaw_PID; //Front left 
   motors.setMotorCommands(m1, m2, m3, m4);
 
-  //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
-  float s1 = 0;
-  float s2 = 0;
+  // 0.5 is centered servo
+  float setPoint = 0.0;
+  float s1 = enc1.ballastControl(setPoint);
+  float s2 = enc2.ballastControl(setPoint);
   motors.setServoCommands(s1, s2);
  
 }
@@ -566,6 +563,14 @@ void throttleCut() {
   if (radio.getPWM(5) > 1500 || motorsOff) {
     motors.throttleCut();
   }
+}
+
+/**
+ * @brief Update the counters for both shaft encoders
+ */
+void updateEncoders() { 
+  enc1.updateCounter();
+  enc2.updateCounter();
 }
 
 /**
