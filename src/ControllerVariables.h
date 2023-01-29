@@ -33,4 +33,4 @@ float Kd_altitude = 0.5;            //Altitude D-gain
 float i_limit_altitude = 10000.0;   //Integrator saturation level
 
 // Position controller variables
-float Kp_position = 0.1;  // Full angle at 10m away from target
+float Kp_position = 0.05;  // Full angle at 20m away from target

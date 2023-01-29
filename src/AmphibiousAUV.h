@@ -56,7 +56,8 @@ enum autoStates {
 enum autoStates missionState;
 
 // Motion planning
-const float POS_DB_RADIUS = 0.25; // Deadband radius for evaluating reached position targets
+const float POSITION_DB_RADIUS = 1.00; // Deadband radius for evaluating reached position targets [meters]
+const int ALTITUDE_DB_RADIUS = 250; // Deadband radius for evaluating altitude targets [milimetetrs]
 boolean motorsOff = false;
 boolean underwater = false;
 float altitude_des = 0.0; // mm

@@ -61,16 +61,17 @@ void setup() {
   // Begin USB Serial
   Serial.begin(500000);
 
+  // Set built in LED to turn on to signal startup
+  pinMode(13, OUTPUT);
+  digitalWrite(13, HIGH);
+
   // Initialize sensors
   altitudeSensor.init();
   //depthSensor.init();
   //camera.init();
   imu.init();
   delay(500);
-
-  // Set built in LED to turn on to signal startup
-  pinMode(13, OUTPUT);
-  digitalWrite(13, HIGH);
+  Serial.println("Sensor initialized");
 
   // Start in manual flight mode
   flightMode = MANUAL;
@@ -83,6 +84,8 @@ void setup() {
 
   // Initilaize motor driver
   motors.init();
+  delay(2000);
+  Serial.println("Motors initialized");
 
   // Initialize radio communication
   radio.init();
@@ -95,13 +98,14 @@ void setup() {
   gps.setStartPos();
 
   // Get IMU error to zero accelerometer and gyro readings, assuming vehicle is level when powered up
-  //calculate_IMU_error();
+  //imu.calculateError();
 
   // Uncomment this to calibrate your ESCs by setting throttle stick to max, powering on, and lowering throttle to zero after the beeps
   // PROPS OFF. Code will not proceed past this if uncommented.
   //calibrateESCs(); 
   
   // Indicate entering main loop with 3 quick blinks
+  Serial.println("Ready to fly!");
   setupBlink(3,160,70); // numBlinks, upTime (ms), downTime (ms)
 
 }
@@ -139,7 +143,7 @@ void loop() {
   if (slowLoopCounter == 100) { 
     altitudeSensor.readAltitude();
   }  if (slowLoopCounter == 200) {
-    gps.read();
+    //gps.read();
     slowLoopCounter = 0;
   }
 
@@ -195,7 +199,7 @@ void printDebugInfo() {
       //altitudeSensor.printAltitude();
       //depthSensor.printDepth();
       //camera.printPosition();
-      gps.printPosition();
+      //gps.printPosition();
       //printLoopRate();
     }
 }
@@ -363,6 +367,14 @@ void getDesStateAuto() {
   // Proportional Position Controller
   error_posX = target_posX - gps.getPosX();
   error_posY = target_posY - gps.getPosY();
+
+  // If needed: Perform a rotaion based on the estiamted yaw angle so translation occurs in body-frame coordiantes to assign pitch/roll angles
+  //    Note: This shouldn't really be needed becasue the yaw is stabilized about zero... so should always be aligned except for dript which can't be controlled anyway
+  //    Would add these lines to do the rotation:
+  //      error_bodyX = error_posX*cos(imu.getYaw()) - error_posY*sin(imu.getYaw());
+  //      error_bodyY = error_posX*sin(imu.getYaw()) + error_posY*cos(imu.getYaw());
+  //    Then change the error values below to those expressed in the body frame
+  
   posX_control = Kp_position*error_posX;
   posY_control = Kp_position*error_posY;
 
@@ -520,9 +532,9 @@ void setTargetPos(float posX, float posY) {
  * @returns 'true' if vehicle has reached target. 
  */
 boolean reachedTarget() {
-  return abs(target_posX - gps.getPosX()) < POS_DB_RADIUS 
-    && abs(target_posY - gps.getPosY()) < POS_DB_RADIUS
-    && abs(altitude_des - altitudeSensor.getAltitude()) < POS_DB_RADIUS;
+  return abs(target_posX - gps.getPosX()) < POSITION_DB_RADIUS 
+    && abs(target_posY - gps.getPosY()) < POSITION_DB_RADIUS
+    && abs(altitude_des - altitudeSensor.getAltitude()) < ALTITUDE_DB_RADIUS;
 }
 
 /**
