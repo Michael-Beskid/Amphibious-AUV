@@ -31,6 +31,7 @@
 #include "ControllerVariables.h"            // Controller variables
 #include "MotorDriver/MotorDriver.h"        // Motor and servo commands
 #include "IMU/IMU.h"                        // MPU 6050 IMU (6-axis accel/gyro)
+#include "GPS/GPS.h"                        // neo-m9n gps Module
 #include "RadioComm/RadioComm.h"            // Radio communication
 #include "DepthSensor/DepthSensor.h"        // BlueRobotics Bar30 depth sensor
 #include "AltitudeSensor/AltitudeSensor.h"  // A02YYUW waterproof ultrasonic rangefinder
@@ -39,6 +40,7 @@
 MotorDriver motors;
 RadioComm radio;
 IMU imu;
+GPS gps;
 DepthSensor depthSensor;
 AltitudeSensor altitudeSensor;
 TrackingCamera camera;                                      
@@ -62,7 +64,7 @@ void setup() {
   // Initialize sensors
   altitudeSensor.init();
   //depthSensor.init();
-  camera.init();
+  //camera.init();
   imu.init();
   delay(500);
 
@@ -87,6 +89,10 @@ void setup() {
   delay(20);
   //Attach interrupt and point to corresponding ISR function
   attachInterrupt(digitalPinToInterrupt(radio.getPPMpin()), ISR, CHANGE);
+
+  gps.init();
+  delay(10000);
+  gps.setStartPos();
 
   // Get IMU error to zero accelerometer and gyro readings, assuming vehicle is level when powered up
   //calculate_IMU_error();
@@ -130,12 +136,10 @@ void loop() {
   
   // Get altitude/depth (sampling at 10 Hz bc can't handle 2 kHz)
   slowLoopCounter++;
-  if (slowLoopCounter == 200) { 
-    if (underwater) {
-      depthSensor.readDepth();
-    } else {
-      altitudeSensor.readAltitude();
-    }
+  if (slowLoopCounter == 100) { 
+    altitudeSensor.readAltitude();
+  }  if (slowLoopCounter == 200) {
+    gps.read();
     slowLoopCounter = 0;
   }
 
@@ -191,6 +195,7 @@ void printDebugInfo() {
       //altitudeSensor.printAltitude();
       //depthSensor.printDepth();
       //camera.printPosition();
+      gps.printPosition();
       //printLoopRate();
     }
 }
@@ -302,14 +307,15 @@ void getDesState() {
           motorsOff = false;
           manualState = MANUAL_STARTUP; // Reset MANUAL mode state machine
           missionState = TAKEOFF;      
+          gps.setStartPos();
           setTargetAltitude(1.5);
           setTargetPos(0.0, 0.0);
           break;
-        case TAKEOFF:
-          if (reachedTarget()) {
-            missionState = FORWARD;
-            setTargetPos(5.0, 0.0);
-          }
+        case TAKEOFF: // Uncomment this block when you're ready to fly a path instead of just hover
+          // if (reachedTarget()) {
+          //   missionState = FORWARD;
+          //   setTargetPos(10.0, 0.0);
+          // }
           break;
         case FORWARD:
           if (reachedTarget()) {
@@ -355,8 +361,8 @@ void getDesStateAuto() {
   error_altitude_prev = error_altitude;
 
   // Proportional Position Controller
-  error_posX = target_posX - camera.getPosX();
-  error_posY = target_posY - camera.getPosY();
+  error_posX = target_posX - gps.getPosX();
+  error_posY = target_posY - gps.getPosY();
   posX_control = Kp_position*error_posX;
   posY_control = Kp_position*error_posY;
 
@@ -514,8 +520,8 @@ void setTargetPos(float posX, float posY) {
  * @returns 'true' if vehicle has reached target. 
  */
 boolean reachedTarget() {
-  return abs(target_posX - camera.getPosX()) < POS_DB_RADIUS 
-    && abs(target_posY - camera.getPosY()) < POS_DB_RADIUS
+  return abs(target_posX - gps.getPosX()) < POS_DB_RADIUS 
+    && abs(target_posY - gps.getPosY()) < POS_DB_RADIUS
     && abs(altitude_des - altitudeSensor.getAltitude()) < POS_DB_RADIUS;
 }
 
