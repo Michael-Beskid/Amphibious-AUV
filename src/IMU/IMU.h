@@ -62,11 +62,11 @@ private:
     float B_gyro = 0.1;       //Gyro LP filter paramter, (MPU6050 default: 0.1. MPU9250 default: 0.17)
 
     //IMU calibration parameters - calibrate IMU using calculate_IMU_error() in the void setup() to get these values, then comment out calculate_IMU_error()
-    float AccErrorX = 0.09;
-    float AccErrorY = 0.02;
+    float AccErrorX = 0.05;
+    float AccErrorY = 0.04;
     float AccErrorZ = -0.10;
-    float GyroErrorX = -2.38;
-    float GyroErrorY = 0.34;
+    float GyroErrorX = -2.45;
+    float GyroErrorY = 0.54;
     float GyroErrorZ = -2.06;
 
     float invSqrt(float x);

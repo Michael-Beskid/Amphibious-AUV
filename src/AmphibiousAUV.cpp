@@ -89,7 +89,7 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(radio.getPPMpin()), ISR, CHANGE);
 
   // Get IMU error to zero accelerometer and gyro readings, assuming vehicle is level when powered up
-  //calculate_IMU_error();
+  //imu.calculateError();
 
   // Uncomment this to calibrate your ESCs by setting throttle stick to max, powering on, and lowering throttle to zero after the beeps
   // PROPS OFF. Code will not proceed past this if uncommented.
