@@ -12,7 +12,7 @@
 #define _MOTORDRIVER_H_
 
 #include "Arduino.h"
-#include <PWMServo.h>   // Commanding any extra actuators, installed with teensyduino installer
+#include <PWMServo.h>
 
 class MotorDriver {
 public:

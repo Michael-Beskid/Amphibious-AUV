@@ -23,21 +23,12 @@
  *
  */
 
-#include <Arduino.h>                        // Arduino library
-#include <Wire.h>                           // I2C communication
-#include <SPI.h>                            // SPI communication
-#include <SoftwareSerial.h>                 // Serial communication
-#include "AmphibiousAUV.h"                  // General variables and function declarations
-#include "ControllerVariables.h"            // Controller variables
-#include "MotorDriver/MotorDriver.h"        // Motor and servo commands
-#include "IMU/IMU.h"                        // MPU 6050 IMU (6-axis accel/gyro)
-#include "RadioComm/RadioComm.h"            // Radio communication
-#include "DepthSensor/DepthSensor.h"        // BlueRobotics Bar30 depth sensor
-#include "AltitudeSensor/AltitudeSensor.h"  // A02YYUW waterproof ultrasonic rangefinder
-#include "TrackingCamera/TrackingCamera.h"  // Intel RealSense T265 tracking camera
+#include "AmphibiousAUV.h"
 
 MotorDriver motors;
 RadioComm radio;
+QuadEncoder enc1(9, 10);
+QuadEncoder enc2(10,11);
 IMU imu;
 DepthSensor depthSensor;
 AltitudeSensor altitudeSensor;
@@ -119,6 +110,9 @@ void loop() {
   // Print data at 100hz (uncomment one at a time below for troubleshooting)
   printDebugInfo();
 
+  // Update encoder counters for ballast system actuation
+  updateEncoders();
+
   // Pull raw gyro, accelerometer, and magnetometer data from IMU and LP filter to remove noise
   imu.readData();
   // Update roll_IMU, pitch_IMU, and yaw_IMU angle estimates (degrees)
@@ -185,6 +179,8 @@ void printDebugInfo() {
       //motors.printMotorCommands();
       //motors.printMotorCommandsScaled();
       //motors.printServoCommands();
+      //enc1.printEncoderInfo();
+      // enc2.printEncoderInfo();
       //imu.printGyroData();
       //imu.printAccelData();
       //imu.printRollPitchYaw();
@@ -259,9 +255,10 @@ void controlMixer() {
   float m4 = thro_des - pitch_PID + roll_PID + yaw_PID; //Front left 
   motors.setMotorCommands(m1, m2, m3, m4);
 
-  //0.5 is centered servo, 0.0 is zero throttle if connecting to ESC for conventional PWM, 1.0 is max throttle
-  float s1 = 0;
-  float s2 = 0;
+  // 0.5 is centered servo
+  float setPoint = 0.0;
+  float s1 = enc1.ballastControl(setPoint);
+  float s2 = enc2.ballastControl(setPoint);
   motors.setServoCommands(s1, s2);
  
 }
@@ -282,6 +279,7 @@ void getDesState() {
       switch (manualState) {
         case MANUAL_STARTUP:
           motorsOff = false;
+          underwater = false;
           missionState = AUTO_STARTUP; // Reset AUTO mode state machine
           manualState = NORMAL;
           break;
@@ -300,15 +298,16 @@ void getDesState() {
           integral_altitude_prev = 0.0;
           error_altitude_prev = 0.0;
           motorsOff = false;
+          underwater = false;
           manualState = MANUAL_STARTUP; // Reset MANUAL mode state machine
           missionState = TAKEOFF1;      
-          setTargetAltitude(1.5);
+          setTargetAltitude(STD_ALTITUDE);
           setTargetPos(0.0, 0.0);
           break;
         case TAKEOFF1:
           if (reachedTarget()) {
             missionState = FORWARD1;
-            setTargetPos(5.0, 0.0);
+            setTargetRelPos(SHORT_TRAVEL_DISTANCE, 0.0);
           }
           break;
         case FORWARD1:
@@ -319,33 +318,95 @@ void getDesState() {
           break;
         case LAND1:
           if (reachedTarget()) {
-            missionState = STOP;
+            missionState = DIVE1;
+            setTargetDepth(STD_DEPTH);
             motorsOff = true;
+            underwater = true;
           }
           break;
         case DIVE1:
+          if (reachedTarget()) {
+            missionState = UNDERWATER1;
+            setTargetRelPos(LONG_TRAVEL_DISTANCE, 0.0);
+            motorsOff = false;
+          }
           break;
         case UNDERWATER1:
+          if (reachedTarget()) {
+            missionState = SURFACE1;
+            setTargetDepth(0.0); // TODO: Maybe better to jsut write a surface() function that just totally empties the ballast tank instead of using the controller?
+            motorsOff = true;
+          }
           break;
         case SURFACE1:
+          if (reachedTarget()) {
+            missionState = TAKEOFF2;
+            setTargetAltitude(STD_ALTITUDE);
+            motorsOff = false;
+            underwater = false;
+          }
           break;
         case TAKEOFF2:
+          if (reachedTarget()) {
+            missionState = HOVER;
+          }
           break;
         case HOVER:
+          long currentTime = millis();
+          long targetTime = currentTime + HOVER_TIME*1000;
+          if (currentTime >= targetTime) {
+            missionState = LAND2;
+            setTargetAltitude(0.0);
+          } else {
+            currentTime = millis();
+          }
           break;
         case LAND2:
+          if (reachedTarget()) {
+            missionState = DIVE2;
+            setTargetDepth(STD_DEPTH);
+            motorsOff = true;
+            underwater = true;
+          }
           break;
         case DIVE2:
+          if (reachedTarget()) {
+            missionState = UNDERWATER2;
+            setTargetRelPos(-LONG_TRAVEL_DISTANCE, 0.0);
+          }
           break;
         case UNDERWATER2:
+          if (reachedTarget()) {
+            missionState = SURFACE2;
+            setTargetDepth(0.0);
+            motorsOff = true;
+          }
           break;
         case SURFACE2:
+          if (reachedTarget()) {
+            missionState = TAKEOFF3;
+            setTargetAltitude(STD_ALTITUDE);
+            motorsOff = false;
+            underwater = false;
+          }
           break;
         case TAKEOFF3:
+          if (reachedTarget()) {
+            missionState = FORWARD2;
+            setTargetRelPos(-SHORT_TRAVEL_DISTANCE, 0.0);
+          }
           break;
         case FORWARD2:
+          if (reachedTarget()) {
+            missionState = LAND3;
+            setTargetAltitude(0.0);
+          }
           break;
         case LAND3:
+          if (reachedTarget()) {
+            missionState = STOP;
+            motorsOff = true;
+          }
           break;
         case STOP:
           break;
@@ -367,16 +428,27 @@ void getDesState() {
  */
 void getDesStateAuto() {
 
-  // PID Altitude Controller
-  error_altitude = altitude_des - altitudeSensor.getAltitude();
-  integral_altitude = integral_altitude_prev + error_altitude*dt;
-  integral_altitude = constrain(integral_altitude, -i_limit_altitude, i_limit_altitude); //Saturate integrator to prevent unsafe buildup
-  derivative_altitude = (error_altitude - error_altitude_prev)/dt; 
-  altitude_PID = 0.00005*(Kp_altitude*error_altitude + Ki_altitude*integral_altitude - Kd_altitude*derivative_altitude); //Scaled by .00005 to bring within 0 to 1 range
-
-  // Update variables
-  integral_altitude_prev = integral_altitude;
-  error_altitude_prev = error_altitude;
+  if (underwater) {
+    // PID Depth Controller
+    error_depth = depth_des - depthSensor.getDepth();
+    integral_depth = integral_depth_prev + error_depth*dt;
+    integral_depth = constrain(integral_depth, -i_limit_depth, i_limit_depth); //Saturate integrator to prevent unsafe buildup
+    derivative_depth = (error_depth - error_depth_prev)/dt; 
+    depth_PID = 0.00005*(Kp_depth*error_depth + Ki_depth*integral_depth - Kd_depth*derivative_depth); //TODO: Come up with a reasonable scaling factor to bring within 0 to 1 range
+    // Update variables
+    integral_depth_prev = integral_depth;
+    error_depth_prev = error_depth;
+  } else {
+    // PID Altitude Controller
+    error_altitude = altitude_des - altitudeSensor.getAltitude();
+    integral_altitude = integral_altitude_prev + error_altitude*dt;
+    integral_altitude = constrain(integral_altitude, -i_limit_altitude, i_limit_altitude); //Saturate integrator to prevent unsafe buildup
+    derivative_altitude = (error_altitude - error_altitude_prev)/dt; 
+    altitude_PID = 0.00005*(Kp_altitude*error_altitude + Ki_altitude*integral_altitude - Kd_altitude*derivative_altitude); //Scaled by .00005 to bring within 0 to 1 range
+    // Update variables
+    integral_altitude_prev = integral_altitude;
+    error_altitude_prev = error_altitude;
+  } 
 
   // Proportional Position Controller
   error_posX = target_posX - camera.getPosX();
@@ -386,8 +458,6 @@ void getDesStateAuto() {
 
   // Set desired throttle value from altitude controller
   thro_des = hover_throttle + altitude_PID;
-
-  // TODO: Check conventions to confirm that X and Y are correctly mapped to pitch and roll axes
 
   // Set desired roll and pitch angles from position controller
   roll_des = posY_control ; //Between -1 and 1
@@ -496,6 +566,14 @@ void throttleCut() {
 }
 
 /**
+ * @brief Update the counters for both shaft encoders
+ */
+void updateEncoders() { 
+  enc1.updateCounter();
+  enc2.updateCounter();
+}
+
+/**
  * @brief Set target altitude.
  * 
  * @param alt Desired altitude in meters.
@@ -525,6 +603,18 @@ void setTargetPos(float posX, float posY) {
 }
 
 /**
+ * @brief Set (X,Y) position target relative to current position target
+ * 
+ * @param posX Desired relative X-position in meters.
+ * @param posY Desired relative Y-position in meters.
+ */
+void setTargetRelPos(float offsetX, float offsetY) {
+  float newTargetX = target_posX + offsetX;
+  float newTargetY = target_posY + offsetY;
+  setTargetPos(newTargetX, newTargetY);
+}
+
+/**
  * @brief Checks whether the vehicle has reached its target location.
  * 
  * During aerial operation, this function checks whether both the vehicle's
@@ -538,9 +628,15 @@ void setTargetPos(float posX, float posY) {
  * @returns 'true' if vehicle has reached target. 
  */
 boolean reachedTarget() {
-  return abs(target_posX - camera.getPosX()) < POS_DB_RADIUS 
+  if (underwater) {
+    return abs(target_posX - camera.getPosX()) < POS_DB_RADIUS 
+    && abs(target_posY - camera.getPosY()) < POS_DB_RADIUS
+    && abs(depth_des - depthSensor.getDepth()) < POS_DB_RADIUS;
+  } else {
+    return abs(target_posX - camera.getPosX()) < POS_DB_RADIUS 
     && abs(target_posY - camera.getPosY()) < POS_DB_RADIUS
     && abs(altitude_des - altitudeSensor.getAltitude()) < POS_DB_RADIUS;
+  }
 }
 
 /**

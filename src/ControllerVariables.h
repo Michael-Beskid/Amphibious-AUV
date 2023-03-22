@@ -32,5 +32,12 @@ float Ki_altitude = 0.2;            //Altitude I-gain
 float Kd_altitude = 0.5;            //Altitude D-gain
 float i_limit_altitude = 10000.0;   //Integrator saturation level
 
+// Depth controller variables
+// TODO: Tune these PID gains and integral saturation limit
+float Kp_depth = 1.0;           //Altitude P-gain
+float Ki_depth = 0.0;           //Altitude I-gain
+float Kd_depth = 0.0;           //Altitude D-gain
+float i_limit_depth = 100.0;    //Integrator saturation level
+
 // Position controller variables
 float Kp_position = 0.1;  // Full angle at 10m away from target

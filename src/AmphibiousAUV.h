@@ -8,7 +8,18 @@
  *
  */
 
-#include <Arduino.h> 
+#include <Arduino.h>                        // Arduino library
+#include <Wire.h>                           // I2C communication
+#include <SPI.h>                            // SPI communication
+#include <SoftwareSerial.h>                 // Serial communication
+#include "ControllerVariables.h"            // Controller variables
+#include "MotorDriver/MotorDriver.h"        // Motor and servo commands
+#include "QuadEncoder/QuadEncoder.h"        // Quadrature coders for ballast system actuation
+#include "IMU/IMU.h"                        // MPU 6050 IMU (6-axis accel/gyro)
+#include "RadioComm/RadioComm.h"            // Radio communication
+#include "DepthSensor/DepthSensor.h"        // BlueRobotics Bar30 depth sensor
+#include "AltitudeSensor/AltitudeSensor.h"  // A02YYUW waterproof ultrasonic rangefinder
+#include "TrackingCamera/TrackingCamera.h"  // Intel RealSense T265 tracking camera  
 
 // General declarations
 float dt;
@@ -26,6 +37,7 @@ float error_roll, error_roll_prev, roll_des_prev, integral_roll, integral_roll_i
 float error_pitch, error_pitch_prev, pitch_des_prev, integral_pitch, integral_pitch_il, integral_pitch_ol, integral_pitch_prev, integral_pitch_prev_il, integral_pitch_prev_ol, derivative_pitch, pitch_PID = 0;
 float error_yaw, error_yaw_prev, integral_yaw, integral_yaw_prev, derivative_yaw, yaw_PID = 0;
 float error_altitude, error_altitude_prev, altitude_des_prev, integral_altitude, integral_altitude_prev, derivative_altitude, altitude_PID = 0;
+float error_depth, error_depth_prev, depth_des_prev, integral_depth, integral_depth_prev, derivative_depth, depth_PID = 0;
 float error_posX, error_posY, posX_control, posY_control = 0;
 
 // Flight modes enumeration
@@ -68,7 +80,15 @@ enum autoStates {
 enum autoStates missionState;
 
 // Motion planning
-const float POS_DB_RADIUS = 0.25; // Deadband radius for evaluating reached position targets
+const float POS_DB_RADIUS = 0.25; // [m] Deadband radius for evaluating reached position targets
+const float STD_ALTITUDE = 1.5; // [m] Standardized typical altitude for autonomous mission
+const float STD_DEPTH = 1.0; // [m] Standardized typcial depth for autonomous mission
+const float POOL_LENGTH = 22.86; // [m] Typical swimming pool lanes are 25 yards in length
+const float INITIAL_DISTANCE = 3.0; // [m] Distance from takeoff location to edge of pool
+const float OFFSET_DISTANCE = 2.0; // [m] Distance from edge of pool for dive/takeoff locations
+const float SHORT_TRAVEL_DISTANCE = INITIAL_DISTANCE + OFFSET_DISTANCE; // [m] Distance traveled in air from takeoff point to pool entry point
+const float LONG_TRAVEL_DISTANCE = POOL_LENGTH - 2*OFFSET_DISTANCE; // [m] Distance traveled underwater from one end of the pool to the other
+const float HOVER_TIME = 5.0; //[seconds] Hover time at midpoint of autonomous mission
 boolean motorsOff = false;
 boolean underwater = false;
 float altitude_des = 0.0; // mm
@@ -86,6 +106,7 @@ void getDesStateAuto();
 void getDesStateManual();
 void controlANGLE();
 void throttleCut();
+void updateEncoders();
 void setTargetAltitude(float alt);
 void setTargetDepth(float depth);
 void setTargetPos(float posX, float posY);

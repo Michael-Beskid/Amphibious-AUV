@@ -240,5 +240,5 @@ void MotorDriver::printServoCommands() {
   Serial.print(F("s1_command: "));
   Serial.print(s1_command_PWM);
   Serial.print(F(" s2_command: "));
-  Serial.print(s2_command_PWM);
+  Serial.println(s2_command_PWM);
 }
